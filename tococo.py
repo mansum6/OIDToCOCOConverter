@@ -127,13 +127,10 @@ def addAnnotations(annotations, imageData, classMapping):
 
     imgs = {img['id']: img for img in imageData}
     classMapping = {clas['freebase_id']: clas for clas in classMapping}
-    numv=0
     for index, imageID, labelName, XMin, XMax, YMin, YMax, IsOccluded, IsTruncated, IsGroupOf, IsDepiction, IsInside in zip(
         indicies, annotations.ImageID, annotations.LabelName, annotations.XMin, annotations.XMax, annotations.YMin, 
         annotations.YMax, annotations.IsOccluded, annotations.IsTruncated, annotations.IsGroupOf, annotations.IsDepiction, 
         annotations.IsInside):
-        numv=numv+1
-        print(numv)
         try:
           ann = {}
           ann['id'] = index
