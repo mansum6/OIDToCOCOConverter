@@ -62,8 +62,12 @@ def getclassCols (ann_path, description_path, rotation_path, sizes_path, classNa
     annFile = pd.read_csv(ann_path, usecols = cols)
     labelNames = annFile.LabelName.to_numpy()
     boolCond = pd.Series(np.in1d(labelNames, classLabels))
-    annFile = annFile[boolCond.values]
+    
+    annFile = annFile[boolCond.values]    
     chunk_imgs = np.unique(annFile.ImageID.to_numpy())
+    numImages=min(maxImages,chunk_imgs.shape[0])
+    chunk_imgs=chunk_imgs[:numImages]
+    
 
     print("fetching rotations from its file...")
     #column names of concern from rotation file
@@ -123,35 +127,38 @@ def addAnnotations(annotations, imageData, classMapping):
 
     imgs = {img['id']: img for img in imageData}
     classMapping = {clas['freebase_id']: clas for clas in classMapping}
-
+    numv=0
     for index, imageID, labelName, XMin, XMax, YMin, YMax, IsOccluded, IsTruncated, IsGroupOf, IsDepiction, IsInside in zip(
         indicies, annotations.ImageID, annotations.LabelName, annotations.XMin, annotations.XMax, annotations.YMin, 
         annotations.YMax, annotations.IsOccluded, annotations.IsTruncated, annotations.IsGroupOf, annotations.IsDepiction, 
         annotations.IsInside):
+        numv=numv+1
+        print(numv)
+        try:
+          ann = {}
+          ann['id'] = index
+          ann['image_id'] = imageID
 
-        ann = {}
-        ann['id'] = index
-        ann['image_id'] = imageID
-
-        ann['freebase_id'] = labelName
-        ann['category_id'] = classMapping[labelName]['id']
-        ann['iscrowd'] = False
-        
-        xmin = float(XMin) * imgs[imageID]['width']
-        ymin = float(YMin) * imgs[imageID]['height']
-        xmax = float(XMax) * imgs[imageID]['width']
-        ymax = float(YMax) * imgs[imageID]['height']
-        dx = xmax - xmin
-        dy = ymax - ymin
-        ann['bbox'] = [round(a, 2) for a in [xmin , ymin, dx, dy]]
-        ann['area'] = round(dx * dy, 2)
-        ann['isoccluded'] = IsOccluded
-        ann['istruncated'] = IsTruncated
-        ann['isgroupof'] = IsGroupOf
-        ann['isdepiction'] = IsDepiction
-        ann['isinside'] = IsInside
-
-        returned_annotations.append(ann)   
+          ann['freebase_id'] = labelName
+          ann['category_id'] = classMapping[labelName]['id']
+          ann['iscrowd'] = False
+          
+          xmin = float(XMin) * imgs[imageID]['width']
+          ymin = float(YMin) * imgs[imageID]['height']
+          xmax = float(XMax) * imgs[imageID]['width']
+          ymax = float(YMax) * imgs[imageID]['height']
+          dx = xmax - xmin
+          dy = ymax - ymin
+          ann['bbox'] = [round(a, 2) for a in [xmin , ymin, dx, dy]]
+          ann['area'] = round(dx * dy, 2)
+          ann['isoccluded'] = IsOccluded
+          ann['istruncated'] = IsTruncated
+          ann['isgroupof'] = IsGroupOf
+          ann['isdepiction'] = IsDepiction
+          ann['isinside'] = IsInside
+          returned_annotations.append(ann)
+        except KeyError:
+          pass   
     return returned_annotations
 
 def converOID(ann_path, description_path, rotation_path, sizes_path, chunksize):
@@ -239,7 +246,7 @@ if __name__ == '__main__':
     parser.add_argument("--i", help = "The path to image sizes file.", type = str)
     parser.add_argument("--d", help = "The path to class description file.", type = str)
     parser.add_argument("--r", help = "The path to rotation file.", type = str)
-
+    parser.add_argument("--maxImages", help = "Maximum number of images to process(Single Class)", type = int, required=False,default=9999999)
     parser.add_argument("--c", help = "class name (if set chunk size will be ignored).", type = str, default = "")
     parser.add_argument("--s", help = "chunk size in each json.", type = int, default = 19)
     args = parser.parse_args()
@@ -250,6 +257,8 @@ if __name__ == '__main__':
     rotation_path = args.r
     className = args.c
     chunksize = args.s
+    maxImages=args.maxImages
+    print(maxImages)
 
     if className != "":
         convertSingleClass(ann_path, description_path, rotation_path, sizes_path, className)
